@@ -1,0 +1,15 @@
+html {
+    
+}
+div.main {
+    min-height: 40rem;
+}
+.align-center {
+    text-align: center;
+}
+table thead tr th, table tbody tr td {
+    text-align: center;
+}
+table tbody tr td {
+    vertical-align: middle;
+}
