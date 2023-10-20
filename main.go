@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -14,17 +14,21 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 	"google.golang.org/appengine"
 )
 
-var NoTooSmall = errors.New("the number is too small")
+type Product struct {
+	ID          int
+	Name        string
+	Description string
+	Price       float64
+	Createdat   time.Time
+	Updatedat   time.Time
+}
 
-func ReturnPositive(no int) (int, error) {
-	if no > 0 {
-		return no, nil
-	} else {
-		return 0, NoTooSmall
-	}
+type AllProducts struct {
+	Products []*Product
 }
 
 var db *sql.DB
@@ -50,6 +54,15 @@ func main() {
 		// db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@cloudsql(%s)/GoJudge", user, password, connectionName))
 	}
 
+	// Maximum Idle Connections
+	db.SetMaxIdleConns(5)
+	// Maximum Open Connections
+	db.SetMaxOpenConns(10)
+	// Idle Connection Timeout
+	db.SetConnMaxIdleTime(1 * time.Second)
+	// Connection Lifetime
+	db.SetConnMaxLifetime(30 * time.Second)
+
 	if err != nil {
 		panic((err.Error()))
 	}
@@ -60,10 +73,15 @@ func main() {
 		panic(err.Error())
 	}
 
-	http.HandleFunc("/login", loginPage)
-	http.HandleFunc("/products", addProduct)
-	http.HandleFunc("/", homePage)
+	r := mux.NewRouter()
+	r.HandleFunc("/login", loginPage)
+	r.HandleFunc("/products", addProduct)
+	r.HandleFunc("/products/{id}", handleProduct)
+	r.HandleFunc("/products/{updateId}", updateProduct)
+	r.HandleFunc("/products/{deleteId}", deleteProduct)
+	r.HandleFunc("/", homePage)
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
+	http.Handle("/", r)
 	fmt.Println("Listening on 127.0.0.1:8080")
 	err := http.ListenAndServe(":9000", nil) // setup listening port
 	if err != nil {
@@ -71,6 +89,85 @@ func main() {
 	}
 
 	appengine.Main()
+}
+
+func handleProduct(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		fmt.Print("switch-getID")
+		param := mux.Vars(req)["id"]
+
+		var product Product
+
+		query := "select id, name, description, price from products where id = ?"
+		err = db.QueryRow(query, param).Scan(&product.ID, &product.Name, &product.Description,
+			&product.Price)
+
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusCreated)
+		json.NewEncoder(res).Encode(product)
+
+	case "POST":
+
+		param := mux.Vars(req)["id"]
+
+		if req.FormValue("_method") == "PUT" {
+			fmt.Print("switch-put")
+			fmt.Print("param =>", param)
+			// id := req.FormValue("update_id")
+			name := req.FormValue("update_name")
+			description := req.FormValue("update_description")
+			price := req.FormValue("update_price")
+			query := "update products set name = ?, description = ?, price = ? where id = ?"
+
+			_, err := db.Query(query, name, description, price, param)
+
+			if err != nil {
+				fmt.Println("update error", err)
+			}
+
+		} else if req.FormValue("_method") == "DELETE" {
+			fmt.Print("switch-delete")
+			// id := req.FormValue("delete_id")
+			query := "delete from products where id = ?"
+
+			_, err := db.Query(query, param)
+
+			if err != nil {
+				fmt.Println("delete error", err)
+			}
+		}
+		http.Redirect(res, req, "/", http.StatusSeeOther)
+
+	}
+
+	// if req.Method == "GET" {
+	// 	param := mux.Vars(req)["getId"]
+
+	// 	var product Product
+
+	// 	query := "select id, name, description, price from products where id = ?"
+	// 	err = db.QueryRow(query, param).Scan(&product.ID, &product.Name, &product.Description,
+	// 		&product.Price)
+
+	// 	res.Header().Set("Content-Type", "application/json")
+	// 	res.WriteHeader(http.StatusCreated)
+	// 	json.NewEncoder(res).Encode(product)
+	// }
+}
+
+func updateProduct(res http.ResponseWriter, req *http.Request) {
+	fmt.Print("updaetID")
+	if req.Method == "POST" {
+		param := mux.Vars(req)["getId"]
+		fmt.Print(param)
+	}
+}
+
+func deleteProduct(res http.ResponseWriter, req *http.Request) {
+	fmt.Print("deleteID")
+	param := mux.Vars(req)["getId"]
+	fmt.Print(param)
 }
 
 func addProduct(res http.ResponseWriter, req *http.Request) {
@@ -90,9 +187,9 @@ func addProduct(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		name := req.FormValue("name")
-		description := req.FormValue("description")
-		price := req.FormValue("price")
+		name := req.FormValue("register_name")
+		description := req.FormValue("register_description")
+		price := req.FormValue("register_price")
 
 		num, err := strconv.Atoi(price)
 		if err != nil {
@@ -115,6 +212,8 @@ func addProduct(res http.ResponseWriter, req *http.Request) {
 	default:
 		fmt.Println("default")
 	}
+
+	http.Redirect(res, req, "/", http.StatusSeeOther)
 }
 
 func loginPage(res http.ResponseWriter, req *http.Request) {
@@ -165,8 +264,36 @@ func loginPage(res http.ResponseWriter, req *http.Request) {
 }
 
 func homePage(res http.ResponseWriter, req *http.Request) {
-	t, _ := template.ParseFiles("templates/index.html")
-	t.Execute(res, nil)
+	query := "select id, name, description, price from products"
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatalf("impossible get products: %s", err)
+	}
+
+	var allProducts AllProducts
+	for rows.Next() {
+		var product Product
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description,
+			&product.Price); err != nil {
+			fmt.Print(err, "scan error")
+		}
+
+		allProducts.Products = append(allProducts.Products, &product)
+	}
+	if err = rows.Err(); err != nil {
+		fmt.Print(err, "Err error")
+	}
+
+	// t, _ := template.ParseFiles("templates/index.html")
+	t, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		log.Fatal("Unable to parse from template:", err)
+	}
+
+	// s := Student{Name: "bug"}
+	// t.Execute(res, s)
+
+	t.Execute(res, &allProducts)
 }
 
 func mustGetenv(k string) string {

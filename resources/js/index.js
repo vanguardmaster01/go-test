@@ -20,7 +20,7 @@ $(document).ready(function() {
                 console.log(response);
             }
         });
-        
+
         // $("#register_form").validate({
         //     rules: {
         //         register_name:{
@@ -60,5 +60,46 @@ $(document).ready(function() {
         //         });
         //     }
         // })    
+    })
+
+    
+    $('.edit').on('click', function(){
+      id = $(this).data('id');
+      $.ajax
+      ({
+        type:"GET",
+        url : '/products/' + id,
+        dataType : 'JSON',
+        success : function(response){
+            $('#update_name').val(response.Name)
+            $('#update_description').val(response.Description)
+            $('#update_price').val(response.Price)
+            $('#update_id').val(response.ID)
+            $('#updateModal').modal('show');
+        },
+        error: function(response){
+            console.log(response);
+        }
+      });
+    })
+
+    $('#update').on('click', function(){
+        $('#update_form').attr('action', $('#update_form').attr('action') + "/" + $('#update_id').val());
+        $('#update_form').submit()
+    })
+
+    $('.delete').on('click', function(){
+        id = $(this).data('id');
+        bootbox.confirm({
+            size: 'small',
+            message: 'Are you sure?',
+            callback: function(result) {
+                 /* result is a boolean; true = OK, false = Cancel*/ 
+                    if (result){
+                        $('#delete_form').attr('action', $('#delete_form').attr('action') + "/" + id);
+                        $('#delete_form').submit()
+                    }
+                }
+            });
     })
 })
