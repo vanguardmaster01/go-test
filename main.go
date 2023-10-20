@@ -77,9 +77,6 @@ func main() {
 	r.HandleFunc("/login", loginPage)
 	r.HandleFunc("/products", products)
 	r.HandleFunc("/products/{id}", handleProduct)
-	// r.HandleFunc("/products/{updateId}", updateProduct)
-	// r.HandleFunc("/products/{deleteId}", deleteProduct)
-	// r.HandleFunc("/", homePage)
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	http.Handle("/", r)
 	fmt.Println("Listening on 127.0.0.1:8080")
@@ -125,7 +122,7 @@ func handleProduct(res http.ResponseWriter, req *http.Request) {
 				result["messages"] = "Invalid input data"
 				result["status"] = "error"
 			} else {
-				query := "update products set name = ?, description = ?, price = ? where id = ?"
+				query := "update products set name = ?, description = ?, price = ?, updatedat = NOW(), where id = ?"
 
 				_, err = db.Query(query, name, description, price, param)
 
@@ -157,20 +154,6 @@ func handleProduct(res http.ResponseWriter, req *http.Request) {
 
 	}
 }
-
-// func updateProduct(res http.ResponseWriter, req *http.Request) {
-// 	fmt.Print("updaetID")
-// 	if req.Method == "POST" {
-// 		param := mux.Vars(req)["getId"]
-// 		fmt.Print(param)
-// 	}
-// }
-
-// func deleteProduct(res http.ResponseWriter, req *http.Request) {
-// 	fmt.Print("deleteID")
-// 	param := mux.Vars(req)["getId"]
-// 	fmt.Print(param)
-// }
 
 func products(res http.ResponseWriter, req *http.Request) {
 
@@ -293,39 +276,6 @@ func loginPage(res http.ResponseWriter, req *http.Request) {
 
 	res.Write([]byte("Hello " + databaseUsername))
 
-}
-
-func homePage(res http.ResponseWriter, req *http.Request) {
-	query := "select id, name, description, price from products"
-	rows, err := db.Query(query)
-	if err != nil {
-		log.Fatalf("impossible get products: %s", err)
-	}
-
-	var allProducts AllProducts
-	for rows.Next() {
-		var product Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description,
-			&product.Price); err != nil {
-			fmt.Print(err, "scan error")
-		}
-
-		allProducts.Products = append(allProducts.Products, &product)
-	}
-	if err = rows.Err(); err != nil {
-		fmt.Print(err, "Err error")
-	}
-
-	// t, _ := template.ParseFiles("templates/index.html")
-	t, err := template.ParseFiles("templates/index.html")
-	if err != nil {
-		log.Fatal("Unable to parse from template:", err)
-	}
-
-	// s := Student{Name: "bug"}
-	// t.Execute(res, s)
-
-	t.Execute(res, &allProducts)
 }
 
 func mustGetenv(k string) string {

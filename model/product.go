@@ -6,3 +6,7 @@ type Product struct {
 	Description string
 	Price       float64
 }
+
+type AllProducts struct {
+	Products []*Product
+}

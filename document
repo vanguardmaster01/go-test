@@ -1,0 +1,16 @@
+go get golang.org/x/crypto/bcrypt
+go get -u github.com/gorilla/mux
+
+go run .\main.go
+
+
+func handleProduct(res http.ResponseWriter, req *http.Request)
+    : GET     /products/:id/
+    : PUT     /products/:id/
+    : DELETE  /products/:id
+
+func products(res http.ResponseWriter, req *http.Request)
+    : GET     /products/
+    : POST    /products/
+
+func loginPage(res http.ResponseWriter, req *http.Request)
