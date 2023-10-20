@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/appengine"
 )
 
@@ -256,25 +257,26 @@ func loginPage(res http.ResponseWriter, req *http.Request) {
 	//logging
 	req.ParseForm()
 	username := html.EscapeString(req.FormValue("username"))
-	// password := html.EscapeString(req.FormValue("password"))
+	password := html.EscapeString(req.FormValue("password"))
 	log.Println(time.Now().Format(time.RFC850), "User Login Attempt by: ", username)
 	var databaseUsername string
-	// var databasePassword string
+	var databasePassword string
 
-	// err := db.QueryRow("SELECT username, password FROM users WHERE username=?", username).Scan(&databaseUsername, &databasePassword)
+	err := db.QueryRow("SELECT username, password FROM users WHERE username=?", username).Scan(&databaseUsername, &databasePassword)
 
-	// if err != nil {
-	// 	http.Redirect(res, req, "/login?retry=1", 301)
-	// 	return
-	// }
+	if err != nil {
+		http.Redirect(res, req, "/login?retry=2", 301)
+		return
+	}
 
-	// err = bcrypt.CompareHashAndPassword([]byte(databasePassword), []byte(password))
-	// if err != nil {
-	// 	http.Redirect(res, req, "/login?retry=1", 301)
-	// 	return
-	// }
+	err = bcrypt.CompareHashAndPassword([]byte(databasePassword), []byte(password))
+	if err != nil {
+		fmt.Print("pwd incorrect", err)
+		http.Redirect(res, req, "/login?retry=1", 301)
+		return
+	}
 
-	res.Write([]byte("Hello " + databaseUsername))
+	http.Redirect(res, req, "/products", http.StatusSeeOther)
 
 }
 

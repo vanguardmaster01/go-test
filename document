@@ -1,6 +1,9 @@
 go get golang.org/x/crypto/bcrypt
 go get -u github.com/gorilla/mux
 
+go get github.com/gin-gonic/gin
+go get github.com/dgrijalva/jwt-go
+
 go run .\main.go
 
 
@@ -14,3 +17,4 @@ func products(res http.ResponseWriter, req *http.Request)
     : POST    /products/
 
 func loginPage(res http.ResponseWriter, req *http.Request)
+    : 
