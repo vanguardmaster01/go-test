@@ -75,11 +75,11 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/login", loginPage)
-	r.HandleFunc("/products", addProduct)
+	r.HandleFunc("/products", products)
 	r.HandleFunc("/products/{id}", handleProduct)
-	r.HandleFunc("/products/{updateId}", updateProduct)
-	r.HandleFunc("/products/{deleteId}", deleteProduct)
-	r.HandleFunc("/", homePage)
+	// r.HandleFunc("/products/{updateId}", updateProduct)
+	// r.HandleFunc("/products/{deleteId}", deleteProduct)
+	// r.HandleFunc("/", homePage)
 	http.Handle("/resources/", http.StripPrefix("/resources/", http.FileServer(http.Dir("resources"))))
 	http.Handle("/", r)
 	fmt.Println("Listening on 127.0.0.1:8080")
@@ -108,22 +108,32 @@ func handleProduct(res http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(res).Encode(product)
 
 	case "POST":
-
+		result := make(map[string]string)
 		param := mux.Vars(req)["id"]
 
 		if req.FormValue("_method") == "PUT" {
 			fmt.Print("switch-put")
 			fmt.Print("param =>", param)
 			// id := req.FormValue("update_id")
-			name := req.FormValue("update_name")
-			description := req.FormValue("update_description")
-			price := req.FormValue("update_price")
-			query := "update products set name = ?, description = ?, price = ? where id = ?"
+			name := req.FormValue("name")
+			description := req.FormValue("description")
+			price := req.FormValue("price")
 
-			_, err := db.Query(query, name, description, price, param)
+			num, err := strconv.Atoi(price)
+			if name == "" || description == "" || num <= 0 {
+				fmt.Printf("ParseForm() err: %v", err)
+				result["messages"] = "Invalid input data"
+				result["status"] = "error"
+			} else {
+				query := "update products set name = ?, description = ?, price = ? where id = ?"
 
-			if err != nil {
-				fmt.Println("update error", err)
+				_, err = db.Query(query, name, description, price, param)
+
+				if err != nil {
+					fmt.Println("update error", err)
+				}
+				result["messages"] = "Successfully update"
+				result["status"] = "success"
 			}
 
 		} else if req.FormValue("_method") == "DELETE" {
@@ -136,84 +146,106 @@ func handleProduct(res http.ResponseWriter, req *http.Request) {
 			if err != nil {
 				fmt.Println("delete error", err)
 			}
+			result["messages"] = "Successfully delete"
+			result["status"] = "success"
+
 		}
-		http.Redirect(res, req, "/", http.StatusSeeOther)
+
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusCreated)
+		json.NewEncoder(res).Encode(result)
 
 	}
-
-	// if req.Method == "GET" {
-	// 	param := mux.Vars(req)["getId"]
-
-	// 	var product Product
-
-	// 	query := "select id, name, description, price from products where id = ?"
-	// 	err = db.QueryRow(query, param).Scan(&product.ID, &product.Name, &product.Description,
-	// 		&product.Price)
-
-	// 	res.Header().Set("Content-Type", "application/json")
-	// 	res.WriteHeader(http.StatusCreated)
-	// 	json.NewEncoder(res).Encode(product)
-	// }
 }
 
-func updateProduct(res http.ResponseWriter, req *http.Request) {
-	fmt.Print("updaetID")
-	if req.Method == "POST" {
-		param := mux.Vars(req)["getId"]
-		fmt.Print(param)
-	}
-}
+// func updateProduct(res http.ResponseWriter, req *http.Request) {
+// 	fmt.Print("updaetID")
+// 	if req.Method == "POST" {
+// 		param := mux.Vars(req)["getId"]
+// 		fmt.Print(param)
+// 	}
+// }
 
-func deleteProduct(res http.ResponseWriter, req *http.Request) {
-	fmt.Print("deleteID")
-	param := mux.Vars(req)["getId"]
-	fmt.Print(param)
-}
+// func deleteProduct(res http.ResponseWriter, req *http.Request) {
+// 	fmt.Print("deleteID")
+// 	param := mux.Vars(req)["getId"]
+// 	fmt.Print(param)
+// }
 
-func addProduct(res http.ResponseWriter, req *http.Request) {
+func products(res http.ResponseWriter, req *http.Request) {
 
 	switch req.Method {
 	case "GET":
-		query := "select * from products"
-		_, err := db.Query(query)
+		query := "select id, name, description, price from products"
+		rows, err := db.Query(query)
 		if err != nil {
 			log.Fatalf("impossible get products: %s", err)
 		}
 
-		fmt.Println("GET")
+		var allProducts AllProducts
+		for rows.Next() {
+			var product Product
+			if err := rows.Scan(&product.ID, &product.Name, &product.Description,
+				&product.Price); err != nil {
+				fmt.Print(err, "scan error")
+			}
+
+			allProducts.Products = append(allProducts.Products, &product)
+		}
+		if err = rows.Err(); err != nil {
+			fmt.Print(err, "Err error")
+		}
+
+		// t, _ := template.ParseFiles("templates/index.html")
+		t, err := template.ParseFiles("templates/index.html")
+		if err != nil {
+			log.Fatal("Unable to parse from template:", err)
+		}
+
+		t.Execute(res, &allProducts)
+
 	case "POST":
+		result := make(map[string]string)
 		if err := req.ParseForm(); err != nil {
 			fmt.Fprintf(res, "ParseForm() err: %v", err)
 			return
 		}
 
-		name := req.FormValue("register_name")
-		description := req.FormValue("register_description")
-		price := req.FormValue("register_price")
+		name := req.FormValue("name")
+		description := req.FormValue("description")
+		price := req.FormValue("price")
 
 		num, err := strconv.Atoi(price)
 		if err != nil {
 			fmt.Println("Conversion error: ", err)
-			return
+			result["messages"] = "Conversion error"
+			result["status"] = "error"
+		} else {
+			if name == "" || description == "" || num <= 0 {
+				fmt.Fprintf(res, "ParseForm() err: %v", err)
+				result["messages"] = "Invalid input data"
+				result["status"] = "error"
+
+			} else {
+				query := "INSERT INTO `products` (`name`, `description`, `price`, `createdat`, `updatedat`) VALUES (?, ?, ?, NOW(), NOW())"
+				_, err = db.ExecContext(context.Background(), query, name, description, price)
+				if err != nil {
+					log.Fatalf("impossible insert products: %s", err)
+				}
+				result["messages"] = "Successfully insert"
+				result["status"] = "success"
+			}
 		}
 
-		if name == "" || description == "" || num <= 0 {
-			fmt.Fprintf(res, "ParseForm() err: %v", err)
-			return
-		}
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusCreated)
+		json.NewEncoder(res).Encode(result)
 
-		query := "INSERT INTO `products` (`name`, `description`, `price`, `createdat`, `updatedat`) VALUES (?, ?, ?, NOW(), NOW())"
-		_, err = db.ExecContext(context.Background(), query, name, description, price)
-		if err != nil {
-			log.Fatalf("impossible insert products: %s", err)
-		}
-
-		fmt.Println("POST")
 	default:
 		fmt.Println("default")
 	}
 
-	http.Redirect(res, req, "/", http.StatusSeeOther)
+	// http.Redirect(res, req, "/", http.StatusSeeOther)
 }
 
 func loginPage(res http.ResponseWriter, req *http.Request) {

@@ -11,12 +11,15 @@ $(document).ready(function() {
             dataType : 'JSON',
             success : function(response){
                 if(response.status == 'success'){
+                    toastr.success(response.messages)
                     $('#registerModal').modal('hide');
+                    location.href = "/products"
+                }else {
+                    toastr.error(response.messages)
                 }
-               console.log("success");
             },
             error: function(response){
-               
+                
                 console.log(response);
             }
         });
@@ -84,8 +87,31 @@ $(document).ready(function() {
     })
 
     $('#update').on('click', function(){
-        $('#update_form').attr('action', $('#update_form').attr('action') + "/" + $('#update_id').val());
-        $('#update_form').submit()
+        id = $('#update_id').val()
+        $.ajax({
+            type:"POST",
+            url : '/products/' + id,
+            data:{
+                _method: "PUT",
+                name : $('#update_name').val(),
+                description : $('#update_description').val(),
+                price : $('#update_price').val(),
+            },
+            dataType : 'JSON',
+            success : function(response){
+                if(response.status == 'success'){
+                    toastr.success(response.messages)
+                    $('#updateModal').modal('hide');
+                    // location.href = "/products"
+                }else {
+                    toastr.error(response.messages)
+                }
+            },
+            error: function(response){
+                
+                console.log(response);
+            }
+        });
     })
 
     $('.delete').on('click', function(){
@@ -96,8 +122,26 @@ $(document).ready(function() {
             callback: function(result) {
                  /* result is a boolean; true = OK, false = Cancel*/ 
                     if (result){
-                        $('#delete_form').attr('action', $('#delete_form').attr('action') + "/" + id);
-                        $('#delete_form').submit()
+                        $.ajax({
+                            type:"POST",
+                            url : '/products/' + id,
+                            data:{
+                                _method: "DELETE",
+                            },
+                            dataType : 'JSON',
+                            success : function(response){
+                                if(response.status == 'success'){
+                                    toastr.success(response.messages)
+                                    // location.href = "/products"
+                                }else {
+                                    toastr.error(response.messages)
+                                }
+                            },
+                            error: function(response){
+                                
+                                console.log(response);
+                            }
+                        });
                     }
                 }
             });
