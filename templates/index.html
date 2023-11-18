@@ -76,13 +76,16 @@
                                     <thead>
                                         <tr>
                                             <th>Name</th>
-                                            <th>Description</th>
+                                            <th>KeyWord</th>
                                             <th>Price</th>
+                                            <th>Demand (Need)</th>
+                                            <th>Location</th>
+                                            <th>Phone</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {{range .Products}}
+                                        <!-- {{range .Products}}
                                         <tr>
                                             <td>{{.Name}}</td>
                                             <td>{{.Description}}</td>
@@ -93,7 +96,50 @@
                                                 <button  class="delete mb-1 mt-1 me-1 btn btn-outline btn-danger" data-id="{{.ID}}">
                                                         <i class="fas fa-trash-alt"></i> </button>
                                             </td>
-                                        {{end}}
+                                        {{end}} -->
+                                        <tr>
+                                            <td>wilmer</td>
+                                            <td>shop key</td>
+                                            <td>$15</td>
+                                            <td>1t</td>
+                                            <td>Kyiv</td>
+                                            <td>(380)1234567</td>
+                                            <td>
+                                                <button class="edit mb-1 mt-1 me-1 btn btn-outline btn-info">
+                                                    <i class="fas fa-edit"></i> </button>
+                                                <button  class="delete mb-1 mt-1 me-1 btn btn-outline btn-danger">
+                                                        <i class="fas fa-trash-alt"></i> </button>
+                                            </td>
+                                        </tr>                                    
+                                        <tr>
+                                            <td>Bread</td>
+                                            <td>Sweet bread</td>
+                                            <td>$25</td>
+                                            <td>500 g</td>
+                                            <td>Taaza Shahi (Los Angeles)</td>
+                                            <td>(361)9005933</td>
+                                            <td>
+                                                <button class="edit mb-1 mt-1 me-1 btn btn-outline btn-info">
+                                                    <i class="fas fa-edit"></i> </button>
+                                                <button  class="delete mb-1 mt-1 me-1 btn btn-outline btn-danger">
+                                                        <i class="fas fa-trash-alt"></i> </button>
+                                            </td>
+                                        </tr>                                    
+                                        <tr>
+                                            <td>Farfiyun or </br>
+                                                Euphorbia Resinifera gum or </br>
+                                                Euphorbia Resinifera resin</td>
+                                            <td>Farfiyun-Euphorbia Resinifera buy</td>
+                                            <td>$300 / 25g</td>
+                                            <td>200 ~ 250 g</td>
+                                            <td>Taaza Shahi Mewa (bengaluru)</td>
+                                            <td>+91 99014 22575</td>
+                                            <td>
+                                                <button class="edit mb-1 mt-1 me-1 btn btn-outline btn-info">
+                                                    <i class="fas fa-edit"></i> </button>
+                                                <button  class="delete mb-1 mt-1 me-1 btn btn-outline btn-danger">
+                                                        <i class="fas fa-trash-alt"></i> </button>
+                                            </td>
                                         </tr>                                    
                                     </tbody>
                                 </table>
@@ -129,6 +175,13 @@
                                         <label class="col-sm-3 text-start text-sm-end mb-0">Price</label>
                                         <div class="col-sm-9">
                                             <input type="text" id="register_price" name="register_price" class="form-control" placeholder="Type your price..." aria-required="true" />
+                                        </div>
+                                    </div>
+                                    <div class="form-group row align-items-center">
+                                        <label class="col-sm-3 text-start text-sm-end mb-0">URL</label>
+                                        <div class="col-sm-9">
+                                            <input type="text" id="register_price" name="register_price" class="form-control" placeholder="Type your price..." aria-required="true"
+                                                value="https://www.taazashahimewa.com/Farfiyun-Euphorb...." />
                                         </div>
                                     </div>
                             </div>
